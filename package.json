@@ -1,0 +1,54 @@
+{
+  "name": "agent-domain-service-mcp",
+  "version": "1.0.0",
+  "description": "MCP server for checking domain availability via AgentDomainService.com - No CAPTCHAs, no API keys required",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "bin": {
+    "agent-domain-service-mcp": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "domain",
+    "domain-availability",
+    "whois",
+    "ai",
+    "claude",
+    "anthropic",
+    "agent-domain-service",
+    "domain-check",
+    "registrar"
+  ],
+  "author": "AgentDomainService",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gregm711/agent-domain-service-mcp.git"
+  },
+  "homepage": "https://agentdomainservice.com",
+  "bugs": {
+    "url": "https://github.com/gregm711/agent-domain-service-mcp/issues"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ]
+}
