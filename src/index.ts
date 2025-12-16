@@ -79,6 +79,38 @@ interface AnalyzeResult {
   verdict: string;
 }
 
+interface SearchResult {
+  count: number;
+  filters: {
+    category: string | null;
+    max_price: number | null;
+    min_price: number | null;
+    tlds: string[] | null;
+    sort: string;
+    limit: number;
+  };
+  domains: Array<{
+    domain: string;
+    name: string;
+    tld: string;
+    price: number | null;
+    price_formatted: string | null;
+    premium: boolean;
+    categories: string[];
+  }>;
+}
+
+interface CategoriesResult {
+  total_available_domains: number;
+  category_count: number;
+  categories: Array<{
+    slug: string;
+    title: string;
+    description: string | null;
+    available_domains: number;
+  }>;
+}
+
 /**
  * Check a single domain's availability
  */
@@ -162,6 +194,60 @@ async function analyzeDomain(domain: string): Promise<AnalyzeResult> {
   }
 
   return response.json() as Promise<AnalyzeResult>;
+}
+
+/**
+ * Search for available domains with filters
+ */
+async function searchDomains(options: {
+  category?: string;
+  max_price?: number;
+  min_price?: number;
+  tlds?: string[];
+  sort?: string;
+  limit?: number;
+}): Promise<SearchResult> {
+  const params = new URLSearchParams();
+  if (options.category) params.set("category", options.category);
+  if (options.max_price) params.set("max_price", options.max_price.toString());
+  if (options.min_price) params.set("min_price", options.min_price.toString());
+  if (options.tlds && options.tlds.length > 0)
+    params.set("tlds", options.tlds.join(","));
+  if (options.sort) params.set("sort", options.sort);
+  if (options.limit) params.set("limit", options.limit.toString());
+
+  const url = `${BASE_URL}/api/v1/domains/search?${params.toString()}`;
+  const response = await fetch(url, {
+    headers: {
+      "User-Agent": "AgentDomainService-MCP/1.0",
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to search domains: ${response.statusText}`);
+  }
+
+  return response.json() as Promise<SearchResult>;
+}
+
+/**
+ * List available categories
+ */
+async function listCategories(): Promise<CategoriesResult> {
+  const url = `${BASE_URL}/api/v1/domains/categories`;
+  const response = await fetch(url, {
+    headers: {
+      "User-Agent": "AgentDomainService-MCP/1.0",
+      Accept: "application/json",
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to list categories: ${response.statusText}`);
+  }
+
+  return response.json() as Promise<CategoriesResult>;
 }
 
 /**
@@ -299,6 +385,62 @@ function formatAnalyzeResult(result: AnalyzeResult): string {
   return lines.join("\n");
 }
 
+/**
+ * Format search result for display
+ */
+function formatSearchResult(result: SearchResult): string {
+  const lines: string[] = [];
+
+  lines.push(`Found ${result.count} available domains`);
+
+  const filters: string[] = [];
+  if (result.filters.category) filters.push(`category: ${result.filters.category}`);
+  if (result.filters.max_price) filters.push(`max price: $${result.filters.max_price}`);
+  if (result.filters.tlds) filters.push(`TLDs: ${result.filters.tlds.join(", ")}`);
+
+  if (filters.length > 0) {
+    lines.push(`Filters: ${filters.join(" | ")}`);
+  }
+  lines.push("");
+
+  if (result.domains.length === 0) {
+    lines.push("No domains found matching your criteria.");
+    lines.push("Try adjusting your filters (higher max_price, different category, etc.)");
+  } else {
+    lines.push("Available Domains:");
+    for (const d of result.domains) {
+      const price = d.price_formatted || "price unknown";
+      const premium = d.premium ? " (premium)" : "";
+      lines.push(`  ✓ ${d.domain} - ${price}${premium}`);
+    }
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Format categories result for display
+ */
+function formatCategoriesResult(result: CategoriesResult): string {
+  const lines: string[] = [];
+
+  lines.push(`${result.total_available_domains} available domains across ${result.category_count} categories`);
+  lines.push("");
+  lines.push("Categories (sorted by domain count):");
+
+  for (const cat of result.categories) {
+    lines.push(`  • ${cat.title} (${cat.slug}): ${cat.available_domains} domains`);
+    if (cat.description) {
+      lines.push(`    ${cat.description}`);
+    }
+  }
+
+  lines.push("");
+  lines.push("Use search_domains with a category slug to find domains in that category.");
+
+  return lines.join("\n");
+}
+
 // Create the MCP server
 const server = new Server(
   {
@@ -385,6 +527,55 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["domain"],
         },
       },
+      {
+        name: "search_domains",
+        description:
+          "Search for available domains with filters. Find domains by category (e.g., 'ai-agents', 'startup-names'), price range, or TLD. Perfect for finding affordable domains within a budget. Use list_categories first to see available categories.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            category: {
+              type: "string",
+              description:
+                "Filter by category slug (e.g., 'ai-agents', 'startup-names', 'ecommerce'). Use list_categories to see all available categories.",
+            },
+            max_price: {
+              type: "number",
+              description:
+                "Maximum price in USD (e.g., 15 for domains under $15). Great for finding budget-friendly domains.",
+            },
+            min_price: {
+              type: "number",
+              description: "Minimum price in USD (optional)",
+            },
+            tlds: {
+              type: "array",
+              items: { type: "string" },
+              description:
+                "Filter by specific TLDs (e.g., ['com', 'io', 'dev'])",
+            },
+            sort: {
+              type: "string",
+              enum: ["price_asc", "price_desc", "newest"],
+              description:
+                "Sort order: 'price_asc' (cheapest first), 'price_desc' (most expensive first), 'newest' (most recently checked)",
+            },
+            limit: {
+              type: "number",
+              description: "Number of results to return (default: 20, max: 100)",
+            },
+          },
+        },
+      },
+      {
+        name: "list_categories",
+        description:
+          "List all available domain categories with their domain counts. Use this to discover what categories are available before searching. Categories include things like AI agents, startups, e-commerce, developer tools, etc.",
+        inputSchema: {
+          type: "object",
+          properties: {},
+        },
+      },
     ],
   };
 });
@@ -460,6 +651,38 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: "text",
               text: formatAnalyzeResult(result),
+            },
+          ],
+        };
+      }
+
+      case "search_domains": {
+        const searchArgs = args as {
+          category?: string;
+          max_price?: number;
+          min_price?: number;
+          tlds?: string[];
+          sort?: string;
+          limit?: number;
+        };
+        const result = await searchDomains(searchArgs);
+        return {
+          content: [
+            {
+              type: "text",
+              text: formatSearchResult(result),
+            },
+          ],
+        };
+      }
+
+      case "list_categories": {
+        const result = await listCategories();
+        return {
+          content: [
+            {
+              type: "text",
+              text: formatCategoriesResult(result),
             },
           ],
         };

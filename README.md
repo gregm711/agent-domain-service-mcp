@@ -10,6 +10,8 @@ An [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server that 
 
 ## Features
 
+- **Price Filtering** - Find domains within your budget (e.g., under $15)
+- **Category Search** - Browse domains by category (AI agents, startups, e-commerce, etc.)
 - **AI Brainstorming** - Describe your project and get creative domain suggestions that are actually available
 - **Domain Analysis** - AI-powered scoring for memorability, brandability, and SEO potential
 - **Check any domain** - Verify if `yourproject.com`, `startup.io`, or `brand.ai` is available
@@ -105,9 +107,50 @@ Get an AI-powered analysis of any domain name to help you decide if it's a good 
 - Overall verdict and recommendation
 - Availability status and pricing
 
+### `search_domains` ⭐ NEW
+
+Search for available domains with filters. Perfect for finding affordable domains within a budget.
+
+**Example prompts:**
+- "Find me domains under $15"
+- "Show me available AI agent domains under $20"
+- "What startup domains are available for under $10?"
+- "Find cheap .com domains"
+
+**Parameters:**
+- `category` - Filter by category (e.g., 'ai-agents', 'startup-names', 'ecommerce')
+- `max_price` - Maximum price in USD (e.g., 15 for under $15)
+- `min_price` - Minimum price in USD (optional)
+- `tlds` - Filter by TLDs (e.g., ['com', 'io'])
+- `sort` - Sort by 'price_asc', 'price_desc', or 'newest'
+- `limit` - Number of results (default: 20, max: 100)
+
+**Returns:**
+- List of available domains with pricing
+- Sorted by price (cheapest first by default)
+- Category tags for each domain
+
+### `list_categories` ⭐ NEW
+
+List all available domain categories with their domain counts. Use this to discover what categories are available before searching.
+
+**Example prompts:**
+- "What domain categories are available?"
+- "Show me all the categories I can search"
+- "How many AI domains do you have?"
+
+**Returns:**
+- All categories with domain counts
+- Category descriptions
+- Total available domains
+
 ## Example Usage
 
 Once installed, you can ask Claude:
+
+> "Find me a domain under $15 for my AI startup"
+
+Claude will use `search_domains` with `max_price=15` to find affordable domains, sorted by price.
 
 > "I'm building an app that helps remote teams do async standups. Can you brainstorm some domain names?"
 
@@ -116,6 +159,10 @@ Claude will use the `brainstorm_domains` tool to generate creative suggestions l
 > "I'm starting a new AI company called 'NeuralFlow'. Can you check which domain options are available?"
 
 Claude will use the `explore_name` tool to check `neuralflow.com`, `neuralflow.io`, `neuralflow.ai`, etc. and show you which are available with pricing.
+
+> "What categories of domains do you have available?"
+
+Claude will use `list_categories` to show all domain categories with counts.
 
 > "What do you think of 'quickpulse.ai' as a domain? Is it any good?"
 
@@ -142,6 +189,8 @@ This MCP server uses the [AgentDomainService API](https://agentdomainservice.com
 
 - `GET /api/v1/lookup/{domain}` - Check a single domain
 - `GET /api/v1/explore/{name}` - Explore a name across TLDs
+- `GET /api/v1/domains/search` - Search with price/category filters ⭐ NEW
+- `GET /api/v1/domains/categories` - List available categories ⭐ NEW
 - `POST /api/v1/brainstorm` - AI-powered domain name generation
 - `POST /api/v1/analyze-domain` - AI-powered domain analysis
 
