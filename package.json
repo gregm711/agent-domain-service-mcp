@@ -1,7 +1,7 @@
 {
   "name": "agent-domain-service-mcp",
-  "version": "1.0.0",
-  "description": "MCP server for checking domain availability via AgentDomainService.com - No CAPTCHAs, no API keys required",
+  "version": "1.1.0",
+  "description": "MCP server for AI-powered domain brainstorming, analysis, and availability checking via AgentDomainService.com - No CAPTCHAs, no API keys required",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "bin": {
@@ -18,13 +18,16 @@
     "model-context-protocol",
     "domain",
     "domain-availability",
-    "whois",
+    "domain-brainstorm",
+    "domain-name-generator",
+    "startup-name",
+    "business-name",
     "ai",
     "claude",
     "anthropic",
     "agent-domain-service",
     "domain-check",
-    "registrar"
+    "domain-analysis"
   ],
   "author": "AgentDomainService",
   "license": "MIT",

@@ -10,9 +10,11 @@ An [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server that 
 
 ## Features
 
+- **AI Brainstorming** - Describe your project and get creative domain suggestions that are actually available
+- **Domain Analysis** - AI-powered scoring for memorability, brandability, and SEO potential
 - **Check any domain** - Verify if `yourproject.com`, `startup.io`, or `brand.ai` is available
 - **Explore names across TLDs** - See availability for `.com`, `.io`, `.ai`, `.co`, `.dev`, `.app`, `.net`, `.xyz`, `.org` at once
-- **Get pricing** - See purchase and renewal prices from Name.com
+- **Real pricing** - See actual purchase and renewal prices from Name.com (not just WHOIS/DNS checks)
 - **No API keys required** - Just install and use
 - **No CAPTCHAs** - [AgentDomainService](https://agentdomainservice.com) handles all the complexity
 
@@ -73,17 +75,51 @@ Explore a name across multiple TLDs to find available options.
 - Pricing for each available option
 - Summary of available vs taken
 
+### `brainstorm_domains`
+
+Generate creative domain name ideas based on a description of your project. **This is what makes this MCP different** - it uses AI to suggest names AND verifies they're actually available with real pricing.
+
+**Example prompts:**
+- "I need a domain for an AI-powered recipe app for busy parents"
+- "Brainstorm domain names for a sustainable fashion marketplace"
+- "Find me available domains for a developer tools startup focused on API testing"
+
+**Returns:**
+- 10+ creative domain suggestions
+- Only domains that are actually available
+- Real purchase prices from Name.com
+- Premium domain indicators
+
+### `analyze_domain`
+
+Get an AI-powered analysis of any domain name to help you decide if it's a good choice.
+
+**Example prompts:**
+- "Analyze coolstartup.com - is it a good domain?"
+- "What do you think of neuralflow.ai as a domain name?"
+- "Score brandify.io for brandability and memorability"
+
+**Returns:**
+- Scores (0-10) for: Memorability, Brandability, Pronunciation, SEO Potential
+- List of pros and cons
+- Overall verdict and recommendation
+- Availability status and pricing
+
 ## Example Usage
 
 Once installed, you can ask Claude:
+
+> "I'm building an app that helps remote teams do async standups. Can you brainstorm some domain names?"
+
+Claude will use the `brainstorm_domains` tool to generate creative suggestions like `asynchuddle.com`, `standupflow.io`, etc. - all verified as available with real pricing.
 
 > "I'm starting a new AI company called 'NeuralFlow'. Can you check which domain options are available?"
 
 Claude will use the `explore_name` tool to check `neuralflow.com`, `neuralflow.io`, `neuralflow.ai`, etc. and show you which are available with pricing.
 
-> "Is stripe.com available? If not, what alternatives do you suggest?"
+> "What do you think of 'quickpulse.ai' as a domain? Is it any good?"
 
-Claude will check the domain and provide suggestions for similar available domains.
+Claude will use `analyze_domain` to score it on memorability, brandability, and SEO potential, then give you pros/cons and a verdict.
 
 ## How It Works
 
@@ -106,6 +142,8 @@ This MCP server uses the [AgentDomainService API](https://agentdomainservice.com
 
 - `GET /api/v1/lookup/{domain}` - Check a single domain
 - `GET /api/v1/explore/{name}` - Explore a name across TLDs
+- `POST /api/v1/brainstorm` - AI-powered domain name generation
+- `POST /api/v1/analyze-domain` - AI-powered domain analysis
 
 Full API documentation: [agentdomainservice.com/docs/domain-availability-api](https://agentdomainservice.com/docs/domain-availability-api)
 

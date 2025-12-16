@@ -51,6 +51,40 @@ interface ExploreResult {
   }>;
 }
 
+interface BrainstormResult {
+  suggestions: Array<{
+    name: string;
+    domain: string;
+    tld: string;
+    available: boolean;
+    purchase_price: number | null;
+    renewal_price: number | null;
+    premium: boolean;
+  }>;
+  prompt: string;
+  generated_at: string;
+}
+
+interface AnalyzeResult {
+  domain: string;
+  available: boolean;
+  status: string;
+  purchase_price: number | null;
+  analysis: {
+    scores: {
+      memorability: number;
+      brandability: number;
+      pronunciation: number;
+      seo_potential: number;
+      overall: number;
+    };
+    pros: string[];
+    cons: string[];
+    verdict: string;
+  };
+  analyzed_at: string;
+}
+
 /**
  * Check a single domain's availability
  */
@@ -87,6 +121,53 @@ async function exploreName(name: string): Promise<ExploreResult> {
   }
 
   return response.json() as Promise<ExploreResult>;
+}
+
+/**
+ * Brainstorm domain names based on a description
+ */
+async function brainstormDomains(
+  prompt: string,
+  count: number = 10
+): Promise<BrainstormResult> {
+  const url = `${BASE_URL}/api/v1/brainstorm`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "User-Agent": "AgentDomainService-MCP/1.0",
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ prompt, count }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to brainstorm: ${response.statusText}`);
+  }
+
+  return response.json() as Promise<BrainstormResult>;
+}
+
+/**
+ * Analyze a domain name with AI scoring
+ */
+async function analyzeDomain(domain: string): Promise<AnalyzeResult> {
+  const url = `${BASE_URL}/api/v1/analyze-domain`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "User-Agent": "AgentDomainService-MCP/1.0",
+      "Content-Type": "application/json",
+      Accept: "application/json",
+    },
+    body: JSON.stringify({ domain }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to analyze domain: ${response.statusText}`);
+  }
+
+  return response.json() as Promise<AnalyzeResult>;
 }
 
 /**
@@ -144,6 +225,87 @@ function formatExploreResult(result: ExploreResult): string {
   return lines.join("\n");
 }
 
+/**
+ * Format brainstorm result for display
+ */
+function formatBrainstormResult(result: BrainstormResult): string {
+  const lines: string[] = [];
+
+  lines.push(`Brainstorm Results for: "${result.prompt}"`);
+  lines.push("");
+
+  const available = result.suggestions.filter((s) => s.available);
+  const taken = result.suggestions.filter((s) => !s.available);
+
+  if (available.length > 0) {
+    lines.push(`✓ Available Domains (${available.length}):`);
+    for (const s of available) {
+      const price = s.purchase_price ? ` - $${s.purchase_price}` : "";
+      const premium = s.premium ? " (premium)" : "";
+      lines.push(`  • ${s.domain}${price}${premium}`);
+    }
+  }
+
+  if (taken.length > 0) {
+    lines.push("");
+    lines.push(`✗ Already Taken (${taken.length}):`);
+    for (const s of taken) {
+      lines.push(`  • ${s.domain}`);
+    }
+  }
+
+  if (available.length === 0) {
+    lines.push("");
+    lines.push("No available domains found. Try a different description or be more specific.");
+  }
+
+  return lines.join("\n");
+}
+
+/**
+ * Format analyze result for display
+ */
+function formatAnalyzeResult(result: AnalyzeResult): string {
+  const lines: string[] = [];
+
+  lines.push(`Domain Analysis: ${result.domain}`);
+  lines.push(`Status: ${result.available ? "✓ Available" : "✗ Taken"}`);
+  if (result.available && result.purchase_price) {
+    lines.push(`Price: $${result.purchase_price}`);
+  }
+  lines.push("");
+
+  if (result.analysis) {
+    lines.push("Scores (out of 10):");
+    lines.push(`  Memorability:   ${result.analysis.scores.memorability}/10`);
+    lines.push(`  Brandability:   ${result.analysis.scores.brandability}/10`);
+    lines.push(`  Pronunciation:  ${result.analysis.scores.pronunciation}/10`);
+    lines.push(`  SEO Potential:  ${result.analysis.scores.seo_potential}/10`);
+    lines.push(`  Overall:        ${result.analysis.scores.overall}/10`);
+    lines.push("");
+
+    if (result.analysis.pros.length > 0) {
+      lines.push("Pros:");
+      for (const pro of result.analysis.pros) {
+        lines.push(`  ✓ ${pro}`);
+      }
+    }
+
+    if (result.analysis.cons.length > 0) {
+      lines.push("");
+      lines.push("Cons:");
+      for (const con of result.analysis.cons) {
+        lines.push(`  ✗ ${con}`);
+      }
+    }
+
+    lines.push("");
+    lines.push(`Verdict: ${result.analysis.verdict}`);
+  }
+
+  return lines.join("\n");
+}
+
 // Create the MCP server
 const server = new Server(
   {
@@ -193,6 +355,43 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
           required: ["name"],
         },
       },
+      {
+        name: "brainstorm_domains",
+        description:
+          "Generate creative domain name ideas based on a description of your project, business, or idea. Uses AI to suggest available domain names that match your concept. Returns only domains that are actually available for registration with real pricing. Perfect for finding the right domain for a new startup, app, or project.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            description: {
+              type: "string",
+              description:
+                "A description of your project, business, or idea (e.g., 'AI-powered recipe app for busy parents', 'sustainable fashion marketplace', 'developer tools for API testing')",
+            },
+            count: {
+              type: "number",
+              description:
+                "Number of suggestions to generate (default: 10, max: 20)",
+            },
+          },
+          required: ["description"],
+        },
+      },
+      {
+        name: "analyze_domain",
+        description:
+          "Get an AI-powered analysis of a domain name. Scores the domain on memorability, brandability, pronunciation ease, and SEO potential. Lists pros, cons, and provides an overall verdict. Useful for evaluating domain name options before purchasing.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            domain: {
+              type: "string",
+              description:
+                "The domain to analyze (e.g., 'coolstartup.com', 'myapp.io')",
+            },
+          },
+          required: ["domain"],
+        },
+      },
     ],
   };
 });
@@ -230,6 +429,44 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             {
               type: "text",
               text: formatExploreResult(result),
+            },
+          ],
+        };
+      }
+
+      case "brainstorm_domains": {
+        const { description, count } = args as {
+          description: string;
+          count?: number;
+        };
+        if (!description) {
+          throw new Error("Description is required");
+        }
+        const result = await brainstormDomains(
+          description,
+          Math.min(count || 10, 20)
+        );
+        return {
+          content: [
+            {
+              type: "text",
+              text: formatBrainstormResult(result),
+            },
+          ],
+        };
+      }
+
+      case "analyze_domain": {
+        const domainArg = (args as { domain: string }).domain;
+        if (!domainArg) {
+          throw new Error("Domain is required");
+        }
+        const result = await analyzeDomain(domainArg);
+        return {
+          content: [
+            {
+              type: "text",
+              text: formatAnalyzeResult(result),
             },
           ],
         };
