@@ -58,7 +58,6 @@ interface BrainstormResult {
     tld: string;
     available: boolean;
     purchase_price: number | null;
-    renewal_price: number | null;
     premium: boolean;
   }>;
   prompt: string;
@@ -67,22 +66,17 @@ interface BrainstormResult {
 
 interface AnalyzeResult {
   domain: string;
-  available: boolean;
-  status: string;
-  purchase_price: number | null;
-  analysis: {
-    scores: {
-      memorability: number;
-      brandability: number;
-      pronunciation: number;
-      seo_potential: number;
-      overall: number;
-    };
-    pros: string[];
-    cons: string[];
-    verdict: string;
+  scores: {
+    memorability: number;
+    brandability: number;
+    length: number;
+    pronunciation: number;
+    seo: number;
+    overall: number;
   };
-  analyzed_at: string;
+  pros: string[];
+  cons: string[];
+  verdict: string;
 }
 
 /**
@@ -269,38 +263,37 @@ function formatAnalyzeResult(result: AnalyzeResult): string {
   const lines: string[] = [];
 
   lines.push(`Domain Analysis: ${result.domain}`);
-  lines.push(`Status: ${result.available ? "✓ Available" : "✗ Taken"}`);
-  if (result.available && result.purchase_price) {
-    lines.push(`Price: $${result.purchase_price}`);
-  }
   lines.push("");
 
-  if (result.analysis) {
-    lines.push("Scores (out of 10):");
-    lines.push(`  Memorability:   ${result.analysis.scores.memorability}/10`);
-    lines.push(`  Brandability:   ${result.analysis.scores.brandability}/10`);
-    lines.push(`  Pronunciation:  ${result.analysis.scores.pronunciation}/10`);
-    lines.push(`  SEO Potential:  ${result.analysis.scores.seo_potential}/10`);
-    lines.push(`  Overall:        ${result.analysis.scores.overall}/10`);
+  if (result.scores) {
+    lines.push("Scores (out of 100):");
+    lines.push(`  Memorability:   ${result.scores.memorability}/100`);
+    lines.push(`  Brandability:   ${result.scores.brandability}/100`);
+    lines.push(`  Length:         ${result.scores.length}/100`);
+    lines.push(`  Pronunciation:  ${result.scores.pronunciation}/100`);
+    lines.push(`  SEO Potential:  ${result.scores.seo}/100`);
+    lines.push(`  Overall:        ${result.scores.overall}/100`);
     lines.push("");
 
-    if (result.analysis.pros.length > 0) {
+    if (result.pros && result.pros.length > 0) {
       lines.push("Pros:");
-      for (const pro of result.analysis.pros) {
+      for (const pro of result.pros) {
         lines.push(`  ✓ ${pro}`);
       }
     }
 
-    if (result.analysis.cons.length > 0) {
+    if (result.cons && result.cons.length > 0) {
       lines.push("");
       lines.push("Cons:");
-      for (const con of result.analysis.cons) {
+      for (const con of result.cons) {
         lines.push(`  ✗ ${con}`);
       }
     }
 
-    lines.push("");
-    lines.push(`Verdict: ${result.analysis.verdict}`);
+    if (result.verdict) {
+      lines.push("");
+      lines.push(`Verdict: ${result.verdict}`);
+    }
   }
 
   return lines.join("\n");
